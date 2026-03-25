@@ -3,121 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rahul Maida Study Portal</title>
+    <title>Rahul Maida - Study Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); }
+        .course-card:hover { transform: translateY(-5px); border-color: #facc15; }
+    </style>
 </head>
-<body class="bg-[#0f172a] text-white font-sans min-h-screen">
-    <div class="flex">
-        <!-- Sidebar -->
-        <div class="w-64 h-screen bg-[#070a16] border-r border-white/10 fixed p-5 flex flex-col justify-between hidden md:flex">
-            <div>
-                <h2 class="text-2xl font-bold text-yellow-400">Rahul Maida</h2>
-                <p class="text-[10px] uppercase text-slate-500">Official Portal</p>
-                <nav class="mt-10">
-                    <button onclick="location.reload()" class="w-full flex items-center gap-3 text-yellow-400 bg-yellow-400/10 p-3 rounded-lg hover:bg-yellow-400/20 transition">
-                        <i data-lucide="layout-dashboard"></i> Batches
-                    </button>
-                </nav>
-            </div>
-            <a href="https://t.me/official_rahulmaida" target="_blank" class="bg-[#229ED9] p-3 rounded-xl flex items-center justify-center gap-2 font-bold hover:scale-105 transition">
+<body class="bg-[#0f172a] text-slate-200 min-h-screen font-sans">
+
+    <!-- Sidebar -->
+    <div class="fixed left-0 top-0 h-full w-64 bg-[#020617] border-r border-white/5 hidden md:flex flex-col p-6 z-50">
+        <h1 class="text-2xl font-black text-yellow-400 monitoring-tight">RAHUL <span class="text-white">MAIDA</span></h1>
+        <nav class="mt-10 space-y-2">
+            <button onclick="location.reload()" class="w-full flex items-center gap-3 bg-yellow-400/10 text-yellow-400 p-3 rounded-xl border border-yellow-400/20">
+                <i data-lucide="layout-grid"></i> All Batches
+            </button>
+        </nav>
+        <div class="mt-auto">
+            <a href="https://t.me/official_rahulmaida" target="_blank" class="w-full flex items-center justify-center gap-2 bg-[#229ED9] hover:bg-[#1e8ec4] text-white p-3 rounded-xl font-bold transition-all shadow-lg shadow-[#229ED9]/20">
                 <i data-lucide="send"></i> Join Telegram
             </a>
         </div>
+    </div>
 
-        <!-- Main Content -->
-        <div class="md:ml-64 p-4 md:p-8 w-full">
-            <header class="flex justify-between items-center mb-8">
-                <div id="header-info">
-                    <h1 class="text-3xl font-bold">Rahul Maida Batches</h1>
-                    <p class="text-slate-400">Loading courses...</p>
-                </div>
-                <div id="nav-actions"></div>
-            </header>
+    <!-- Main Content -->
+    <div class="md:ml-64 p-4 md:p-8">
+        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+            <div id="header-text">
+                <h2 id="title-main" class="text-3xl font-bold text-white mb-1">Available Batches</h2>
+                <p id="sub-main" class="text-slate-400 text-sm">Explore your courses and start learning</p>
+            </div>
+            <div id="header-action"></div>
+        </header>
 
-            <div id="main-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <!-- Data Loads Here -->
+        <div id="main-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Content will be injected here -->
+            <div class="col-span-full py-20 text-center">
+                <div class="animate-spin w-10 h-10 border-4 border-yellow-400 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p>Establishing Connection...</p>
             </div>
         </div>
     </div>
 
     <script>
         const API_BASE = "https://rahul-backend-7ag5.onrender.com";
-        let currentBatchId = "";
+        let activeBatchId = "";
 
-        async function fetchBatches() {
+        // Function 1: Fetch all batches
+        async function loadBatches() {
             try {
                 const res = await fetch(`${API_BASE}/api/batches`);
                 const data = await res.json();
                 renderBatches(data);
-            } catch (e) { document.getElementById('main-grid').innerHTML = "Error loading batches."; }
+            } catch (err) {
+                document.getElementById('main-grid').innerHTML = `
+                    <div class="col-span-full text-center py-10 bg-red-500/10 border border-red-500/20 rounded-2xl">
+                        <p class="text-red-400 font-bold">Failed to load courses. Please refresh.</p>
+                    </div>`;
+            }
         }
 
+        // Function 2: Render Batches
         function renderBatches(batches) {
-            document.getElementById('header-info').innerHTML = `<h1 class="text-3xl font-bold">All Batches</h1><p class="text-slate-400">${batches.length} Courses Found</p>`;
-            document.getElementById('nav-actions').innerHTML = "";
-            
             const grid = document.getElementById('main-grid');
             grid.innerHTML = batches.map(b => `
-                <div onclick="openBatch('${b.batchId}')" class="bg-slate-900 border border-white/10 rounded-2xl overflow-hidden hover:border-yellow-400 cursor-pointer transition shadow-xl">
-                    <img src="${b.batchImage}" class="w-full h-40 object-cover">
-                    <div class="p-4">
-                        <h3 class="font-bold text-sm mb-1">${b.batchName}</h3>
-                        <p class="text-[10px] text-slate-500 uppercase">${b.byName}</p>
+                <div onclick="openBatch('${b.batchId}')" class="course-card bg-[#1e293b] border border-white/5 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 group shadow-2xl">
+                    <div class="relative h-44 overflow-hidden">
+                        <img src="${b.batchImage}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#1e293b] to-transparent opacity-60"></div>
+                    </div>
+                    <div class="p-5">
+                        <h3 class="text-white font-bold text-sm line-clamp-2 leading-relaxed h-10 mb-2">${b.batchName}</h3>
+                        <p class="text-[10px] uppercase tracking-widest text-yellow-400 font-bold">${b.byName}</p>
                     </div>
                 </div>
             `).join('');
             lucide.createIcons();
         }
 
+        // Function 3: Open Subjects
         async function openBatch(id) {
-            currentBatchId = id;
-            document.getElementById('main-grid').innerHTML = "Loading Subjects...";
+            activeBatchId = id;
+            document.getElementById('main-grid').innerHTML = '<p class="col-span-full text-center py-20">Loading Subjects...</p>';
             try {
-                const res = await fetch(`${API_BASE}/api/batch-details?batchId=${id}`);
+                const res = await fetch(`${API_BASE}/api/details/${id}`);
                 const response = await res.json();
-                renderSubjects(response.data.subjects);
-            } catch (e) { alert("Failed to load subjects."); }
+                
+                document.getElementById('title-main').innerText = "Subjects";
+                document.getElementById('sub-main').innerText = "Select a subject to view content";
+                document.getElementById('header-action').innerHTML = `
+                    <button onclick="location.reload()" class="bg-slate-800 hover:bg-slate-700 px-5 py-2 rounded-xl text-sm font-bold border border-white/5 transition-colors">
+                        ← Back to Batches
+                    </button>`;
+
+                const grid = document.getElementById('main-grid');
+                grid.innerHTML = response.data.subjects.map(s => `
+                    <div onclick="openContent('${s.subjectId}', '${s.subjectName}')" class="bg-[#1e293b] p-6 rounded-2xl border border-white/5 hover:border-yellow-400 transition-all cursor-pointer flex items-center gap-4 group">
+                        <div class="w-12 h-12 bg-yellow-400/10 rounded-xl flex items-center justify-center text-yellow-400 group-hover:bg-yellow-400 group-hover:text-black transition-all">
+                            <i data-lucide="folder"></i>
+                        </div>
+                        <h3 class="font-bold text-sm text-white">${s.subjectName}</h3>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            } catch (err) { alert("Error loading subjects."); }
         }
 
-        function renderSubjects(subjects) {
-            document.getElementById('header-info').innerHTML = `<h1 class="text-2xl font-bold">Subjects</h1>`;
-            document.getElementById('nav-actions').innerHTML = `<button onclick="location.reload()" class="bg-slate-800 px-4 py-2 rounded-lg">Back</button>`;
-            
-            const grid = document.getElementById('main-grid');
-            grid.innerHTML = subjects.map(s => `
-                <div onclick="openContent('${s.subjectId}')" class="bg-slate-900 border border-white/10 p-5 rounded-xl flex items-center gap-4 hover:border-yellow-400 cursor-pointer">
-                    <i data-lucide="folder" class="text-yellow-400"></i>
-                    <h3 class="font-bold text-sm">${s.subjectName}</h3>
-                </div>
-            `).join('');
-            lucide.createIcons();
-        }
-
-        async function openContent(subId) {
-            document.getElementById('main-grid').innerHTML = "Loading Videos...";
+        // Function 4: Open Videos/PDFs
+        async function openContent(subId, subName) {
+            document.getElementById('main-grid').innerHTML = '<p class="col-span-full text-center py-20">Loading Content...</p>';
             try {
-                const res = await fetch(`${API_BASE}/api/batch-content?batchId=${currentBatchId}&subjectId=${subId}`);
+                const res = await fetch(`${API_BASE}/api/content/${activeBatchId}/${subId}`);
                 const response = await res.json();
-                renderVideos(response.data);
-            } catch (e) { alert("Failed to load videos."); }
+
+                document.getElementById('title-main').innerText = subName;
+                document.getElementById('header-action').innerHTML = `
+                    <button onclick="openBatch('${activeBatchId}')" class="bg-slate-800 hover:bg-slate-700 px-5 py-2 rounded-xl text-sm font-bold border border-white/5 transition-colors">
+                        ← Back to Subjects
+                    </button>`;
+
+                const grid = document.getElementById('main-grid');
+                grid.innerHTML = response.data.map(item => `
+                    <div class="bg-[#1e293b] p-5 rounded-2xl border border-white/5 shadow-xl">
+                        <div class="mb-4">
+                            <h4 class="text-white font-semibold text-sm line-clamp-2 leading-relaxed h-10">${item.title}</h4>
+                        </div>
+                        <a href="${item.url}" target="_blank" class="block w-full text-center bg-yellow-400 hover:bg-yellow-500 text-black py-2.5 rounded-xl font-bold text-xs transition-all uppercase tracking-wide">
+                            Open ${item.url.includes('.pdf') ? 'PDF File' : 'Watch Video'}
+                        </a>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            } catch (err) { alert("Error loading content."); }
         }
 
-        function renderVideos(contents) {
-            document.getElementById('header-info').innerHTML = `<h1 class="text-2xl font-bold">Videos & Files</h1>`;
-            const grid = document.getElementById('main-grid');
-            
-            grid.innerHTML = contents.map(item => `
-                <div class="bg-slate-900 border border-white/10 p-4 rounded-xl flex flex-col justify-between">
-                    <h4 class="text-sm font-semibold mb-3">${item.title}</h4>
-                    <a href="${item.url}" target="_blank" class="bg-yellow-400 text-black py-2 rounded-lg text-center font-bold text-xs">Watch Video</a>
-                </div>
-            `).join('');
-            lucide.createIcons();
-        }
-
-        fetchBatches();
-        lucide.createIcons();
+        // Start App
+        loadBatches();
     </script>
 </body>
 </html>
