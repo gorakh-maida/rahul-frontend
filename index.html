@@ -6,10 +6,6 @@
     <title>Rahul Maida Study Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        .loader { border-top-color: #fbbf24; animation: spinner 1.5s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
 </head>
 <body class="bg-[#0f172a] text-white font-sans min-h-screen">
     <div class="flex">
@@ -17,9 +13,9 @@
         <div class="w-64 h-screen bg-[#070a16] border-r border-white/10 fixed p-5 flex flex-col justify-between hidden md:flex">
             <div>
                 <h2 class="text-2xl font-bold text-yellow-400">Rahul Maida</h2>
-                <p class="text-[10px] uppercase tracking-widest text-slate-500">Official Portal</p>
-                <nav class="mt-10 space-y-4">
-                    <button onclick="showBatches()" class="w-full flex items-center gap-3 text-yellow-400 bg-yellow-400/10 p-3 rounded-lg hover:bg-yellow-400/20 transition">
+                <p class="text-[10px] uppercase text-slate-500">Official Portal</p>
+                <nav class="mt-10">
+                    <button onclick="location.reload()" class="w-full flex items-center gap-3 text-yellow-400 bg-yellow-400/10 p-3 rounded-lg hover:bg-yellow-400/20 transition">
                         <i data-lucide="layout-dashboard"></i> Batches
                     </button>
                 </nav>
@@ -31,59 +27,97 @@
 
         <!-- Main Content -->
         <div class="md:ml-64 p-4 md:p-8 w-full">
-            <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <div id="header-title">
-                    <h1 class="text-3xl font-bold">All Batches</h1>
-                    <p class="text-slate-400">Welcome back to Rahul Maida Portal</p>
+            <header class="flex justify-between items-center mb-8">
+                <div id="header-info">
+                    <h1 class="text-3xl font-bold">Rahul Maida Batches</h1>
+                    <p class="text-slate-400">Loading courses...</p>
                 </div>
-                <div class="flex gap-2 w-full md:w-auto">
-                    <div id="back-btn-container"></div>
-                    <input type="text" id="search" onkeyup="filterBatches()" placeholder="Search batches..." class="bg-slate-800 border border-white/10 p-3 rounded-xl w-full">
-                </div>
+                <div id="nav-actions"></div>
             </header>
 
-            <!-- Grid Container -->
-            <div id="content-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <!-- Data will load here -->
-                <div class="col-span-full flex flex-col items-center justify-center py-20">
-                    <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-700 h-12 w-12 mb-4"></div>
-                    <p class="text-slate-400">Updating Rahul Maida's Server...</p>
-                </div>
+            <div id="main-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Data Loads Here -->
             </div>
         </div>
     </div>
 
-   <script>
-    const API_BASE = "https://rahul-backend-7ag5.onrender.com"; // CHECK THIS LINK
-    let allBatches = [];
+    <script>
+        const API_BASE = "https://rahul-backend-7ag5.onrender.com";
+        let currentBatchId = "";
 
-    async function loadBatches() {
-        const res = await fetch(`${API_BASE}/api/batches`);
-        allBatches = await res.json();
-        renderBatches(allBatches);
-    }
+        async function fetchBatches() {
+            try {
+                const res = await fetch(`${API_BASE}/api/batches`);
+                const data = await res.json();
+                renderBatches(data);
+            } catch (e) { document.getElementById('main-grid').innerHTML = "Error loading batches."; }
+        }
 
-    async function openBatch(batchId) {
-        document.getElementById('content-container').innerHTML = '<p class="col-span-full text-center py-10">Loading Subjects...</p>';
-        try {
-            // BACKEND CHANGE: Use /api/batch-details
-            const res = await fetch(`${API_BASE}/api/batch-details?batchId=${batchId}`);
-            const data = await res.json();
-            renderSubjects(data.data.subjects, batchId);
-        } catch(e) { showError("Failed to load subjects."); }
-    }
+        function renderBatches(batches) {
+            document.getElementById('header-info').innerHTML = `<h1 class="text-3xl font-bold">All Batches</h1><p class="text-slate-400">${batches.length} Courses Found</p>`;
+            document.getElementById('nav-actions').innerHTML = "";
+            
+            const grid = document.getElementById('main-grid');
+            grid.innerHTML = batches.map(b => `
+                <div onclick="openBatch('${b.batchId}')" class="bg-slate-900 border border-white/10 rounded-2xl overflow-hidden hover:border-yellow-400 cursor-pointer transition shadow-xl">
+                    <img src="${b.batchImage}" class="w-full h-40 object-cover">
+                    <div class="p-4">
+                        <h3 class="font-bold text-sm mb-1">${b.batchName}</h3>
+                        <p class="text-[10px] text-slate-500 uppercase">${b.byName}</p>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
 
-    async function openContent(batchId, subjectId) {
-        document.getElementById('content-container').innerHTML = '<p class="col-span-full text-center py-10">Loading Videos & Files...</p>';
-        try {
-            // BACKEND CHANGE: Use /api/batch-content
-            const res = await fetch(`${API_BASE}/api/batch-content?batchId=${batchId}&subjectId=${subjectId}`);
-            const data = await res.json();
-            renderFinalContent(data.data);
-        } catch(e) { showError("Failed to load content."); }
-    }
+        async function openBatch(id) {
+            currentBatchId = id;
+            document.getElementById('main-grid').innerHTML = "Loading Subjects...";
+            try {
+                const res = await fetch(`${API_BASE}/api/batch-details?batchId=${id}`);
+                const response = await res.json();
+                renderSubjects(response.data.subjects);
+            } catch (e) { alert("Failed to load subjects."); }
+        }
 
-    // Reference common functions from previous code (renderBatches, renderSubjects, etc.)
-</script>
+        function renderSubjects(subjects) {
+            document.getElementById('header-info').innerHTML = `<h1 class="text-2xl font-bold">Subjects</h1>`;
+            document.getElementById('nav-actions').innerHTML = `<button onclick="location.reload()" class="bg-slate-800 px-4 py-2 rounded-lg">Back</button>`;
+            
+            const grid = document.getElementById('main-grid');
+            grid.innerHTML = subjects.map(s => `
+                <div onclick="openContent('${s.subjectId}')" class="bg-slate-900 border border-white/10 p-5 rounded-xl flex items-center gap-4 hover:border-yellow-400 cursor-pointer">
+                    <i data-lucide="folder" class="text-yellow-400"></i>
+                    <h3 class="font-bold text-sm">${s.subjectName}</h3>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        async function openContent(subId) {
+            document.getElementById('main-grid').innerHTML = "Loading Videos...";
+            try {
+                const res = await fetch(`${API_BASE}/api/batch-content?batchId=${currentBatchId}&subjectId=${subId}`);
+                const response = await res.json();
+                renderVideos(response.data);
+            } catch (e) { alert("Failed to load videos."); }
+        }
+
+        function renderVideos(contents) {
+            document.getElementById('header-info').innerHTML = `<h1 class="text-2xl font-bold">Videos & Files</h1>`;
+            const grid = document.getElementById('main-grid');
+            
+            grid.innerHTML = contents.map(item => `
+                <div class="bg-slate-900 border border-white/10 p-4 rounded-xl flex flex-col justify-between">
+                    <h4 class="text-sm font-semibold mb-3">${item.title}</h4>
+                    <a href="${item.url}" target="_blank" class="bg-yellow-400 text-black py-2 rounded-lg text-center font-bold text-xs">Watch Video</a>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        fetchBatches();
+        lucide.createIcons();
+    </script>
 </body>
 </html>
