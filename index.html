@@ -9,6 +9,7 @@
     <style>
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); }
         .course-card:hover { transform: translateY(-5px); border-color: #facc15; }
+        .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     </style>
 </head>
 <body class="bg-[#0f172a] text-slate-200 min-h-screen font-sans">
@@ -39,10 +40,10 @@
         </header>
 
         <div id="main-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <!-- Content will be injected here -->
+            <!-- Initial Loader -->
             <div class="col-span-full py-20 text-center">
                 <div class="animate-spin w-10 h-10 border-4 border-yellow-400 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p>Establishing Connection...</p>
+                <p class="text-slate-400">Connecting to Rahul Maida's Server...</p>
             </div>
         </div>
     </div>
@@ -58,25 +59,48 @@
                 const data = await res.json();
                 renderBatches(data);
             } catch (err) {
+                console.error("Fetch Error:", err);
                 document.getElementById('main-grid').innerHTML = `
                     <div class="col-span-full text-center py-10 bg-red-500/10 border border-red-500/20 rounded-2xl">
-                        <p class="text-red-400 font-bold">Failed to load courses. Please refresh.</p>
+                        <i data-lucide="alert-circle" class="mx-auto mb-2 text-red-500"></i>
+                        <p class="text-red-400 font-bold">Failed to load courses. Backend might be sleeping.</p>
+                        <button onclick="loadBatches()" class="mt-4 bg-red-500 text-white px-6 py-2 rounded-lg font-bold">Retry Now</button>
                     </div>`;
+                lucide.createIcons();
             }
         }
 
-        // Function 2: Render Batches
+        // Function 2: Render Batches (With Empty State Check)
         function renderBatches(batches) {
             const grid = document.getElementById('main-grid');
+            
+            // Check if backend returned empty list
+            if (!batches || batches.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-20 text-center bg-yellow-400/5 border border-yellow-400/10 rounded-3xl">
+                        <div class="w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                            <i data-lucide="refresh-cw" class="text-yellow-400"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-2">Syncing Data...</h3>
+                        <p class="text-slate-400 max-w-md mx-auto px-6">We are fetching the latest batches for the first time. Please wait 10-20 seconds and refresh the page.</p>
+                        <button onclick="location.reload()" class="mt-6 bg-yellow-400 text-black px-8 py-3 rounded-xl font-bold hover:bg-yellow-500 transition-all">
+                            Check Again
+                        </button>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            // If data exists, render cards
             grid.innerHTML = batches.map(b => `
                 <div onclick="openBatch('${b.batchId}')" class="course-card bg-[#1e293b] border border-white/5 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 group shadow-2xl">
                     <div class="relative h-44 overflow-hidden">
-                        <img src="${b.batchImage}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <img src="${b.batchImage}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onerror="this.src='https://placehold.co/600x400/1e293b/facc15?text=No+Image'">
                         <div class="absolute inset-0 bg-gradient-to-t from-[#1e293b] to-transparent opacity-60"></div>
                     </div>
                     <div class="p-5">
                         <h3 class="text-white font-bold text-sm line-clamp-2 leading-relaxed h-10 mb-2">${b.batchName}</h3>
-                        <p class="text-[10px] uppercase tracking-widest text-yellow-400 font-bold">${b.byName}</p>
+                        <p class="text-[10px] uppercase tracking-widest text-yellow-400 font-bold">${b.byName || 'Rahul Maida'}</p>
                     </div>
                 </div>
             `).join('');
@@ -86,21 +110,31 @@
         // Function 3: Open Subjects
         async function openBatch(id) {
             activeBatchId = id;
-            document.getElementById('main-grid').innerHTML = '<p class="col-span-full text-center py-20">Loading Subjects...</p>';
+            document.getElementById('main-grid').innerHTML = `
+                <div class="col-span-full text-center py-20">
+                    <div class="animate-spin w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p>Fetching Subjects...</p>
+                </div>`;
+            
             try {
+                // FIXED: Using Path Parameters /api/details/{id}
                 const res = await fetch(`${API_BASE}/api/details/${id}`);
                 const response = await res.json();
                 
+                if(!response.data || !response.data.subjects || response.data.subjects.length === 0) {
+                    throw new Error("No subjects");
+                }
+
                 document.getElementById('title-main').innerText = "Subjects";
                 document.getElementById('sub-main').innerText = "Select a subject to view content";
                 document.getElementById('header-action').innerHTML = `
-                    <button onclick="location.reload()" class="bg-slate-800 hover:bg-slate-700 px-5 py-2 rounded-xl text-sm font-bold border border-white/5 transition-colors">
-                        ← Back to Batches
+                    <button onclick="location.reload()" class="bg-slate-800 hover:bg-slate-700 px-5 py-2 rounded-xl text-sm font-bold border border-white/5 transition-colors flex items-center gap-2">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Batches
                     </button>`;
 
                 const grid = document.getElementById('main-grid');
                 grid.innerHTML = response.data.subjects.map(s => `
-                    <div onclick="openContent('${s.subjectId}', '${s.subjectName}')" class="bg-[#1e293b] p-6 rounded-2xl border border-white/5 hover:border-yellow-400 transition-all cursor-pointer flex items-center gap-4 group">
+                    <div onclick="openContent('${s.subjectId}', '${s.subjectName.replace(/'/g, "\\'")}')" class="bg-[#1e293b] p-6 rounded-2xl border border-white/5 hover:border-yellow-400 transition-all cursor-pointer flex items-center gap-4 group">
                         <div class="w-12 h-12 bg-yellow-400/10 rounded-xl flex items-center justify-center text-yellow-400 group-hover:bg-yellow-400 group-hover:text-black transition-all">
                             <i data-lucide="folder"></i>
                         </div>
@@ -108,39 +142,61 @@
                     </div>
                 `).join('');
                 lucide.createIcons();
-            } catch (err) { alert("Error loading subjects."); }
+            } catch (err) { 
+                alert("Subject load failed. This batch might be private or empty.");
+                location.reload();
+            }
         }
 
         // Function 4: Open Videos/PDFs
         async function openContent(subId, subName) {
-            document.getElementById('main-grid').innerHTML = '<p class="col-span-full text-center py-20">Loading Content...</p>';
+            document.getElementById('main-grid').innerHTML = `
+                <div class="col-span-full text-center py-20">
+                    <div class="animate-spin w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p>Loading folder content...</p>
+                </div>`;
+            
             try {
+                // FIXED: Using Path Parameters /api/content/{bid}/{sid}
                 const res = await fetch(`${API_BASE}/api/content/${activeBatchId}/${subId}`);
                 const response = await res.json();
 
                 document.getElementById('title-main').innerText = subName;
                 document.getElementById('header-action').innerHTML = `
-                    <button onclick="openBatch('${activeBatchId}')" class="bg-slate-800 hover:bg-slate-700 px-5 py-2 rounded-xl text-sm font-bold border border-white/5 transition-colors">
-                        ← Back to Subjects
+                    <button onclick="openBatch('${activeBatchId}')" class="bg-slate-800 hover:bg-slate-700 px-5 py-2 rounded-xl text-sm font-bold border border-white/5 transition-colors flex items-center gap-2">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Subjects
                     </button>`;
 
                 const grid = document.getElementById('main-grid');
+                
+                if(!response.data || response.data.length === 0) {
+                    grid.innerHTML = `<p class="col-span-full text-center py-10 text-slate-500">No content found in this folder.</p>`;
+                    return;
+                }
+
                 grid.innerHTML = response.data.map(item => `
                     <div class="bg-[#1e293b] p-5 rounded-2xl border border-white/5 shadow-xl">
                         <div class="mb-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i data-lucide="${item.url.includes('.pdf') ? 'file-text' : 'play-circle'}" class="w-4 h-4 text-yellow-400"></i>
+                                <span class="text-[10px] text-slate-500 uppercase font-bold">${item.url.includes('.pdf') ? 'PDF Document' : 'Video Lesson'}</span>
+                            </div>
                             <h4 class="text-white font-semibold text-sm line-clamp-2 leading-relaxed h-10">${item.title}</h4>
                         </div>
                         <a href="${item.url}" target="_blank" class="block w-full text-center bg-yellow-400 hover:bg-yellow-500 text-black py-2.5 rounded-xl font-bold text-xs transition-all uppercase tracking-wide">
-                            Open ${item.url.includes('.pdf') ? 'PDF File' : 'Watch Video'}
+                            Open ${item.url.includes('.pdf') ? 'View PDF' : 'Watch Video'}
                         </a>
                     </div>
                 `).join('');
                 lucide.createIcons();
-            } catch (err) { alert("Error loading content."); }
+            } catch (err) { 
+                alert("Error loading content."); 
+                openBatch(activeBatchId);
+            }
         }
 
         // Start App
-        loadBatches();
+        document.addEventListener('DOMContentLoaded', loadBatches);
     </script>
 </body>
 </html>
