@@ -53,129 +53,37 @@
         </div>
     </div>
 
-    <script>
-        // YAHAN APNA RENDER LINK DALO
-        const API_BASE = "https://rahul-backend-7ag5.onrender.com";
-        
-        let allBatches = [];
+   <script>
+    const API_BASE = "https://rahul-backend-7ag5.onrender.com"; // CHECK THIS LINK
+    let allBatches = [];
 
-        async function loadBatches() {
-            try {
-                const res = await fetch(`${API_BASE}/api/batches`);
-                allBatches = await res.json();
-                renderBatches(allBatches);
-            } catch (err) {
-                showError("Could not connect to Rahul Maida API.");
-            }
-        }
+    async function loadBatches() {
+        const res = await fetch(`${API_BASE}/api/batches`);
+        allBatches = await res.json();
+        renderBatches(allBatches);
+    }
 
-        function renderBatches(data) {
-            document.getElementById('header-title').innerHTML = `<h1 class="text-3xl font-bold">All Batches</h1><p class="text-slate-400">Total ${data.length} Batches Available</p>`;
-            document.getElementById('back-btn-container').innerHTML = '';
-            
-            const grid = document.getElementById('content-container');
-            grid.innerHTML = data.map(batch => `
-                <div onclick="openBatch('${batch.batchId}')" class="group bg-slate-900 border border-white/10 rounded-2xl overflow-hidden hover:border-yellow-400 transition cursor-pointer shadow-lg">
-                    <div class="relative overflow-hidden">
-                        <img src="${batch.batchImage}" class="w-full h-44 object-cover group-hover:scale-105 transition duration-500">
-                        <div class="absolute top-2 right-2 bg-yellow-400 text-black text-[10px] font-bold px-2 py-1 rounded">RAHUL MAIDA</div>
-                    </div>
-                    <div class="p-4">
-                        <h3 class="font-bold text-md mb-1 line-clamp-1">${batch.batchName}</h3>
-                        <p class="text-xs text-slate-500 mb-4">${batch.byName}</p>
-                        <button class="w-full bg-slate-800 group-hover:bg-yellow-400 group-hover:text-black py-2 rounded-lg font-bold text-sm transition">View Content</button>
-                    </div>
-                </div>
-            `).join('');
-            lucide.createIcons();
-        }
+    async function openBatch(batchId) {
+        document.getElementById('content-container').innerHTML = '<p class="col-span-full text-center py-10">Loading Subjects...</p>';
+        try {
+            // BACKEND CHANGE: Use /api/batch-details
+            const res = await fetch(`${API_BASE}/api/batch-details?batchId=${batchId}`);
+            const data = await res.json();
+            renderSubjects(data.data.subjects, batchId);
+        } catch(e) { showError("Failed to load subjects."); }
+    }
 
-        async function openBatch(batchId) {
-            scroll(0,0);
-            document.getElementById('content-container').innerHTML = '<div class="col-span-full text-center py-20 text-slate-400">Fetching Subjects...</div>';
-            
-            try {
-                const res = await fetch(`${API_BASE}/api/batch-info?batchId=${batchId}&type=subject`);
-                const data = await res.json();
-                renderSubjects(data.data, batchId);
-            } catch (err) {
-                showError("Content loading failed.");
-            }
-        }
+    async function openContent(batchId, subjectId) {
+        document.getElementById('content-container').innerHTML = '<p class="col-span-full text-center py-10">Loading Videos & Files...</p>';
+        try {
+            // BACKEND CHANGE: Use /api/batch-content
+            const res = await fetch(`${API_BASE}/api/batch-content?batchId=${batchId}&subjectId=${subjectId}`);
+            const data = await res.json();
+            renderFinalContent(data.data);
+        } catch(e) { showError("Failed to load content."); }
+    }
 
-        function renderSubjects(subjects, batchId) {
-            document.getElementById('header-title').innerHTML = `<h1 class="text-3xl font-bold">Subjects</h1><p class="text-slate-400">Select a subject to see videos</p>`;
-            document.getElementById('back-btn-container').innerHTML = `<button onclick="showBatches()" class="bg-slate-700 px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-slate-600 font-bold mb-4 md:mb-0"><i data-lucide="arrow-left"></i> Back</button>`;
-            
-            const grid = document.getElementById('content-container');
-            grid.innerHTML = subjects.map(sub => `
-                <div onclick="openContent('${batchId}', '${sub.subjectId}')" class="flex items-center gap-4 bg-slate-900 border border-white/10 p-4 rounded-xl hover:border-yellow-400 cursor-pointer transition">
-                    <div class="bg-yellow-400/10 p-3 rounded-lg text-yellow-400">
-                        <i data-lucide="folder"></i>
-                    </div>
-                    <h3 class="font-bold truncate">${sub.subjectName}</h3>
-                </div>
-            `).join('');
-            lucide.createIcons();
-        }
-
-        async function openContent(batchId, subjectId) {
-            document.getElementById('content-container').innerHTML = '<div class="col-span-full text-center py-20 text-slate-400">Loading Content...</div>';
-            
-            try {
-                // Fetching contents (videos/notes)
-                const res = await fetch(`${API_BASE}/api/batch-info?batchId=${batchId}&type=subjectId&subjectId=${subjectId}`);
-                // Note: OmniStudy API might require different type for folders, but proxy handles it.
-                const data = await res.json();
-                renderFinalContent(data.data);
-            } catch (err) {
-                showError("Could not fetch videos.");
-            }
-        }
-
-        function renderFinalContent(contents) {
-            const grid = document.getElementById('content-container');
-            if(!contents || contents.length === 0) {
-                grid.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500 italic">No videos or files found in this section.</div>';
-                return;
-            }
-
-            grid.innerHTML = contents.map(item => {
-                const isVideo = item.type === 'video';
-                const icon = isVideo ? 'play-circle' : 'file-text';
-                const color = isVideo ? 'text-blue-400' : 'text-green-400';
-
-                return `
-                    <div class="bg-slate-900 border border-white/10 p-4 rounded-xl flex flex-col justify-between">
-                        <div class="flex items-start gap-3">
-                            <i data-lucide="${icon}" class="${color} shrink-0"></i>
-                            <h3 class="text-sm font-semibold leading-tight">${item.title}</h3>
-                        </div>
-                        <a href="${item.url}" target="_blank" class="mt-4 block text-center bg-slate-800 hover:bg-white hover:text-black py-2 rounded-lg text-xs font-bold transition">
-                           Open ${isVideo ? 'Video' : 'File'}
-                        </a>
-                    </div>
-                `;
-            }).join('');
-            lucide.createIcons();
-        }
-
-        function showBatches() {
-            renderBatches(allBatches);
-        }
-
-        function filterBatches() {
-            const term = document.getElementById('search').value.toLowerCase();
-            const filtered = allBatches.filter(b => b.batchName.toLowerCase().includes(term));
-            renderBatches(filtered);
-        }
-
-        function showError(msg) {
-            document.getElementById('content-container').innerHTML = `<div class="col-span-full text-red-400 text-center py-20 p-4 bg-red-400/10 rounded-xl border border-red-400/20">${msg}</div>`;
-        }
-
-        loadBatches();
-        lucide.createIcons();
-    </script>
+    // Reference common functions from previous code (renderBatches, renderSubjects, etc.)
+</script>
 </body>
 </html>
