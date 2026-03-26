@@ -37,7 +37,6 @@
 
         async function loadBatches() {
             const grid = document.getElementById('main-grid');
-            console.log("Fetching all batches...");
             try {
                 const res = await fetch(`${API}/api/batches`);
                 const data = await res.json();
@@ -60,38 +59,45 @@
             } catch (e) { grid.innerHTML = "Server Error"; }
         }
 
+        /* ✅ UPDATED FUNCTION */
         async function openBatch(id) {
             lastBatchId = id;
             const grid = document.getElementById('main-grid');
-            grid.innerHTML = `<div class="col-span-full py-20 text-center"><p class="animate-bounce">Opening Batch Materials...</p></div>`;
+            grid.innerHTML = '<div class="col-span-full text-center py-20"><div class="animate-spin w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full mx-auto mb-4"></div><p>Fetching Subjects...</p></div>';
             
-            console.log("Opening Details for:", id);
             try {
                 const res = await fetch(`${API}/api/details/${id}`);
                 const resData = await res.json();
                 
-                // Handling different data structures
-                const subjects = resData.data.subjects || resData.data || [];
+                // Smart Data Detection
+                let subjects = [];
+                if (resData.data && resData.data.subjects) subjects = resData.data.subjects;
+                else if (resData.data && Array.isArray(resData.data)) subjects = resData.data;
+                else if (Array.isArray(resData)) subjects = resData;
 
-                document.getElementById('title').innerText = "Subjects";
+                document.getElementById('title').innerText = "Subjects List";
                 document.getElementById('action-btn').innerHTML = `<button onclick="location.reload()" class="bg-white text-black px-4 py-2 rounded-xl font-bold text-xs uppercase">← Back</button>`;
 
-                if(subjects.length === 0) {
-                    grid.innerHTML = `<div class="col-span-full p-10 text-center">No subjects found in this batch.</div>`;
+                if (subjects.length === 0) {
+                    grid.innerHTML = `<div class="col-span-full p-20 text-center bg-slate-800 rounded-2xl">
+                        <p class="mb-4">No subjects found inside this batch.</p>
+                        <button onclick="openBatch('${id}')" class="text-yellow-400 font-bold underline">Try Refreshing Subjects</button>
+                    </div>`;
                     return;
                 }
 
                 grid.innerHTML = subjects.map(s => `
                     <div onclick="openContent('${id}', '${s.subjectId}', '${s.subjectName}')" class="card p-6 rounded-2xl cursor-pointer flex items-center gap-4">
                         <div class="bg-yellow-400 text-black p-3 rounded-xl"><i data-lucide="folder"></i></div>
-                        <span class="font-bold text-sm truncate">${s.subjectName}</span>
+                        <div class="overflow-hidden">
+                            <p class="font-bold text-sm truncate">${s.subjectName}</p>
+                            <p class="text-[9px] text-slate-500 uppercase mt-1">Open Lessons</p>
+                        </div>
                     </div>
                 `).join('');
                 lucide.createIcons();
             } catch (e) { 
-                console.error(e);
-                alert("Failed to load subjects. Error: " + e.message);
-                location.reload();
+                alert("Details load error. Try again.");
             }
         }
 
