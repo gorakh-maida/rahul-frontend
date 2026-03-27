@@ -3,56 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rahul Maida Study - Mirror Portal</title>
+    <title>Rahul Maida Study</title>
     <style>
-        body { background: #03040a; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: sans-serif; }
-        .loader { text-align: center; color: #facc15; }
-        .spin { width: 40px; height: 40px; border: 4px solid #ffffff1a; border-top-color: #facc15; border-radius: 50%; animation: s 1s linear infinite; margin: 0 auto 15px; }
+        body { background: #03040a; margin: 0; color: #facc15; font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .info { text-align: center; }
+        .loader { width: 40px; height: 40px; border: 4px solid #333; border-top-color: #facc15; border-radius: 50%; animation: s 1s linear infinite; margin: 0 auto 15px; }
         @keyframes s { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-
-    <div id="loader" class="loader">
-        <div class="spin"></div>
-        <p>RAHUL MAIDA STUDY - MIRRORING CONTENT...</p>
+    <div id="root" class="info">
+        <div class="loader"></div>
+        <p>RAHUL MAIDA STUDY - Loading Content...</p>
     </div>
 
     <script>
-        // NOTE: Use the URL from your Render logs
-        const BACKEND = "https://rahul-backend-7ag5.onrender.com";
+        // Use your Render URL from logs
+        const API_URL = "https://rahul-backend-7ag5.onrender.com";
 
-        async function loadStudyPortal() {
+        async function sync() {
             const params = new URLSearchParams(window.location.search);
-            // Agar path nahi hai toh default MissionJeet load karega
             const path = params.get('path') || 'MissionJeet/';
-            
+            const query = window.location.search.replace('?path=' + path, '');
+
             try {
-                // Fetch direct from proxy without redirection
-                const res = await fetch(`${BACKEND}/${path}${window.location.search.replace('?path=' + path, '')}`);
+                const res = await fetch(`${API_URL}/${path}${query}`);
                 const html = await res.text();
                 
-                // Inject full page logic
                 document.open();
                 document.write(html);
                 document.close();
-
-                // Background support for Telegram float
-                const tg = document.createElement('a');
-                tg.href = "https://t.me/official_rahulmaida";
-                tg.innerText = "JOIN TELEGRAM";
-                tg.style = "position:fixed;bottom:20px;right:20px;background:#0088cc;color:white;padding:12px 20px;border-radius:50px;text-decoration:none;font-weight:bold;z-index:999999;";
-                document.body.appendChild(tg);
-
-            } catch (err) {
-                document.getElementById('loader').innerHTML = `
-                    <h3>Server Connection Lost</h3>
-                    <button onclick="location.reload()" style="background:#facc15; border:none; padding:10px 20px; cursor:pointer;">RETRY</button>
-                `;
+            } catch (e) {
+                document.getElementById('root').innerHTML = "Server waking up... please wait 30s and Refresh.";
             }
         }
-
-        loadStudyPortal();
+        sync();
     </script>
 </body>
 </html>
