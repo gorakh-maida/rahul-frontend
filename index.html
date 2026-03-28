@@ -7,29 +7,23 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { background: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        body { background: #020617; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
         .batch-card { background: #0f172a; border: 1px solid #1e293b; transition: 0.3s; }
-        .batch-card:hover { border-color: #facc15; transform: translateY(-4px); }
-        .loader { width: 48px; height: 48px; border: 5px solid #FFF; border-bottom-color: #facc15; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
-        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .batch-card:hover { border-color: #eab308; transform: translateY(-4px); }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-10">
+<body class="p-4 md:p-10">
 
-    <div class="max-w-7xl mx-auto">
+    <div class="max-w-6xl mx-auto">
         <header class="flex justify-between items-center mb-12 border-b border-white/5 pb-6">
-            <div>
-                <h1 onclick="location.reload()" class="text-3xl font-black text-white cursor-pointer tracking-tight">RAHUL <span class="text-yellow-400">MAIDA</span></h1>
-                <p id="status-text" class="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-widest">Portal Version 2.0 - Online</p>
-            </div>
-            <div id="nav-btn"></div>
+            <h1 class="text-3xl font-black tracking-tight" onclick="location.reload()">RAHUL <span class="text-yellow-500">MAIDA</span></h1>
+            <div id="nav-action"></div>
         </header>
 
         <div id="root" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Initial Loader -->
             <div class="col-span-full py-20 text-center">
-                <span class="loader"></span>
-                <p class="mt-4 text-slate-400 font-medium">Connecting to Secure Server...</p>
+                <div class="w-10 h-10 border-4 border-yellow-500 border-t-transparent animate-spin rounded-full mx-auto mb-4"></div>
+                <p class="text-slate-400">Connecting to Rahul's Secure Portal...</p>
             </div>
         </div>
     </div>
@@ -39,93 +33,76 @@
 
         async function init() {
             try {
-                const res = await fetch(`${API}/api/batches`);
-                const data = await res.json();
-                const root = document.getElementById('root');
+                const r = await fetch(`${API}/api/batches`);
+                const data = await r.json();
+                const container = document.getElementById('root');
                 
                 if(!data || data.length === 0) {
-                    root.innerHTML = `<div class="col-span-full py-20 text-center">
-                        <p class="text-red-400 mb-4">No data received from backend.</p>
-                        <button onclick="init()" class="bg-yellow-400 text-black px-6 py-2 rounded-full font-bold">RETRY SYNC</button>
-                    </div>`;
+                    container.innerHTML = "Backend is still syncing... Refresh in 1 minute.";
                     return;
                 }
 
-                root.innerHTML = data.map(b => `
-                    <div onclick="openBatch('${b.batchId}')" class="batch-card rounded-3xl overflow-hidden cursor-pointer shadow-lg">
-                        <img src="${b.batchImage}" class="w-full h-44 object-cover">
-                        <div class="p-5">
-                            <h3 class="text-sm font-bold h-10 line-clamp-2 leading-tight">${b.batchName}</h3>
-                            <p class="text-[10px] text-yellow-500 font-black uppercase mt-3 tracking-widest">${b.byName || 'Rahul Maida'}</p>
-                        </div>
+                container.innerHTML = data.map(b => `
+                    <div onclick="openBatch('${b.batchId}')" class="batch-card rounded-3xl overflow-hidden cursor-pointer">
+                        <img src="${b.batchImage}" class="w-full h-40 object-cover opacity-80">
+                        <div class="p-5 font-bold text-xs line-clamp-2">${b.batchName}</div>
                     </div>
                 `).join('');
-            } catch (e) {
-                document.getElementById('root').innerHTML = "Server Down. Please check Render Dashboard.";
-            }
+            } catch (e) { document.getElementById('root').innerHTML = "Server Error. Check Render logs."; }
         }
 
-        async function openBatch(bid) {
+        async function openBatch(id) {
             const root = document.getElementById('root');
-            root.innerHTML = `<div class="col-span-full py-20 text-center"><span class="loader"></span><p class="mt-4 text-yellow-400 font-bold">DECRYPTING SUBJECTS...</p></div>`;
+            root.innerHTML = `<div class="col-span-full py-20 text-center animate-pulse text-yellow-500 font-bold uppercase tracking-widest">Unlocking Batch Data...</div>`;
             
             try {
-                const res = await fetch(`${API}/api/details/${bid}`);
-                const resData = await res.json();
+                const r = await fetch(`${API}/api/details/${id}`);
+                const resData = await r.json();
                 
-                // Flexible data detection
-                let subjects = (resData.data && resData.data.subjects) ? resData.data.subjects : (Array.isArray(resData.data) ? resData.data : []);
+                let subjects = [];
+                if(resData.data) {
+                    subjects = resData.data.subjects || (Array.isArray(resData.data) ? resData.data : []);
+                }
 
-                document.getElementById('nav-btn').innerHTML = `<button onclick="location.reload()" class="bg-white text-black px-6 py-2 rounded-xl font-bold text-xs">BACK HOME</button>`;
+                document.getElementById('nav-action').innerHTML = `<button onclick="location.reload()" class="bg-white text-black px-6 py-2 rounded-2xl font-black text-[10px] uppercase">← Back</button>`;
 
-                if (subjects.length === 0) {
-                    root.innerHTML = `<div class="col-span-full py-20 text-center bg-slate-900 rounded-3xl border border-white/5">
-                        <p class="text-xl font-bold mb-2">Notice: Batch Empty</p>
-                        <p class="text-slate-500 text-sm mb-6">Source returned 0 subjects for this ID.</p>
-                        <button onclick="openBatch('${bid}')" class="text-yellow-400 font-bold underline">Try Once More</button>
-                    </div>`;
+                if(subjects.length === 0) {
+                    root.innerHTML = `
+                        <div class="col-span-full py-20 text-center bg-slate-900 rounded-3xl border border-white/5">
+                            <p class="text-xl font-bold mb-2 text-red-400">Source Restricted (0 Subjects)</p>
+                            <p class="text-slate-500 text-sm mb-6">Source site ne data block kiya hai ya batch khali hai.</p>
+                            <button onclick="openBatch('${id}')" class="bg-yellow-500 text-black px-8 py-3 rounded-xl font-bold">Retry Now</button>
+                        </div>`;
                     return;
                 }
 
                 root.innerHTML = subjects.map(s => `
-                    <div onclick="openContent('${bid}', '${s.subjectId}')" class="batch-card p-6 rounded-3xl flex items-center gap-4 cursor-pointer hover:bg-slate-800">
-                        <div class="bg-yellow-400/10 p-3 rounded-2xl text-yellow-400"><i data-lucide="folder"></i></div>
+                    <div onclick="openContent('${id}', '${s.subjectId}')" class="batch-card p-6 rounded-3xl flex items-center gap-4 cursor-pointer hover:bg-slate-800">
+                        <div class="bg-yellow-500 text-black p-3 rounded-2xl"><i data-lucide="folder"></i></div>
                         <span class="font-bold text-sm truncate">${s.subjectName}</span>
                     </div>
                 `).join('');
                 lucide.createIcons();
-            } catch(e) { 
-                root.innerHTML = "Error loading subjects."; 
-            }
+            } catch (e) { location.reload(); }
         }
 
         async function openContent(bid, sid) {
             const root = document.getElementById('root');
-            root.innerHTML = "<div class='col-span-full py-20 text-center'><span class='loader'></span></div>";
+            root.innerHTML = `<div class="col-span-full py-20 text-center">Loading Lectures...</div>`;
 
             try {
-                const res = await fetch(`${API}/api/content/${bid}/${sid}`);
-                const data = await res.json();
-                const content = data.data || [];
-
-                document.getElementById('nav-btn').innerHTML = `<button onclick="openBatch('${bid}')" class="bg-white text-black px-6 py-2 rounded-xl font-bold text-xs">BACK TO SUBJECTS</button>`;
-
-                if (content.length === 0) {
-                    root.innerHTML = "<div class='col-span-full py-20 text-center text-slate-500'>Empty Subject Folder.</div>";
-                    return;
-                }
+                const r = await fetch(`${API}/api/content/${bid}/${sid}`);
+                const resData = await r.json();
+                const content = resData.data || [];
 
                 root.innerHTML = content.map(item => `
-                    <div class="batch-card p-5 rounded-3xl flex flex-col justify-between h-full bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-xl">
-                        <div>
-                            <div class="text-yellow-400 mb-4"><i data-lucide="${item.url.includes('.pdf') ? 'file-text' : 'play-circle'}" class="w-8 h-8"></i></div>
-                            <h4 class="text-xs font-bold line-clamp-3 mb-4 leading-relaxed">${item.title}</h4>
-                        </div>
-                        <a href="${item.url}" target="_blank" class="block w-full text-center bg-yellow-400 text-black py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all">OPEN NOW</a>
+                    <div class="batch-card p-6 rounded-[2rem] flex flex-col justify-between h-full">
+                        <h4 class="text-xs font-bold leading-relaxed mb-6">${item.title}</h4>
+                        <a href="${item.url}" target="_blank" class="block text-center bg-yellow-500 text-black py-4 rounded-2xl font-black text-[10px] uppercase shadow-lg shadow-yellow-500/20 transition-all hover:scale-105 active:scale-95">Open Material</a>
                     </div>
                 `).join('');
                 lucide.createIcons();
-            } catch(e) { root.innerHTML = "Error loading content."; }
+            } catch (e) { alert("Content Error"); }
         }
 
         window.onload = init;
