@@ -42,46 +42,31 @@
         </div>
     </div>
 
-    <script>
-        // AAPKA RENDER URL YAHAN CHECK KAREIN
-        const API = "https://rahul-backend-7ag5.onrender.com";
+ /* index.html ke script section mein ye badal do */
+const API = "https://rahul-backend-7ag5.onrender.com";
 
-        async function loadBatches() {
-            const root = document.getElementById('root');
-            const status = document.getElementById('status-text');
-            status.innerText = "Attempting Authentication Bypass...";
+async function loadBatches() {
+    const root = document.getElementById('root');
+    const status = document.getElementById('status-text');
+    status.innerText = "Bypassing Authentication...";
 
-            try {
-                const res = await fetch(`${API}/api/batches`);
-                if(!res.ok) throw new Error("Backend Offline");
-                
-                const data = await res.json();
-                status.innerText = "Verified • Live Sync Active";
-                
-                if(data.length === 0) {
-                    root.innerHTML = `<div class="col-span-full text-center py-20 text-zinc-500">No Batches Found. Check your Token.</div>`;
-                    return;
-                }
-
-                root.innerHTML = data.map(b => `
-                    <div onclick="openBatch('${b.batchId || b._id}')" class="glass-card p-5 cursor-pointer group">
-                        <img src="${b.batchImage}" class="w-full h-48 object-cover rounded-2xl mb-4 group-hover:opacity-80 transition-opacity">
-                        <h3 class="font-bold text-lg mb-4 line-clamp-2">${b.batchName}</h3>
-                        <div class="flex justify-between items-center text-amber-500 font-bold text-xs uppercase tracking-widest">
-                            <span>View Subjects</span>
-                            <i data-lucide="arrow-right-circle"></i>
-                        </div>
-                    </div>
-                `).join('');
-                lucide.createIcons();
-            } catch (err) {
-                status.innerText = "Connection Failed • Refreshing...";
-                root.innerHTML = `<div class="col-span-full text-center py-20">
-                    <p class="text-red-500 font-bold">Error: Backend is sleeping.</p>
-                    <button onclick="location.reload()" class="mt-4 bg-white text-black px-8 py-3 rounded-full font-bold">CLICK TO WAKE UP SERVER</button>
-                </div>`;
-            }
+    try {
+        // Simple fetch without extra complexity
+        const res = await fetch(`${API}/api/batches`);
+        
+        if (!res.ok) {
+            const errBody = await res.json();
+            throw new Error(errBody.error || "Server Error");
         }
+
+        const data = await res.json();
+        // ... rest of the code same ...
+    } catch (err) {
+        console.error("Fetch Error:", err);
+        status.innerText = "CORS or Backend Error";
+        // ... error message display ...
+    }
+}
 
         async function openBatch(bid) {
             const root = document.getElementById('root');
