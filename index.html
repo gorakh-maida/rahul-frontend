@@ -3,130 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rahul Maida Study Portal - Premium 2.0</title>
-    <!-- CSS Directly for Production -->
+    <title>RAHUL MAIDA STUDIO 2.0</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
-    
     <style>
-        :root { --gold: #facd13; --bg: #050505; }
-        body { background: var(--bg); color: #ffffff; font-family: 'Inter', sans-serif; }
-        .master-card { background: #111112; border: 1px solid rgba(250, 205, 19, 0.05); border-radius: 30px; transition: 0.4s ease; }
-        .master-card:hover { border-color: var(--gold); transform: scale(1.02); box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
-        .live-dot { width: 10px; height: 10px; background: #ff4757; border-radius: 50%; display: inline-block; animation: blink 1s infinite; margin-right: 8px; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
-        .btn-gold { background: var(--gold); color: #000; font-weight: 900; transition: 0.3s; }
-        .btn-gold:hover { filter: brightness(1.2); letter-spacing: 1px; }
+        :root { --gold: #FFD700; --bg: #000000; }
+        body { background: var(--bg); color: #fff; font-family: sans-serif; }
+        .card { background: #111; border: 1px solid #222; border-radius: 20px; transition: 0.3s; cursor: pointer; }
+        .card:hover { border-color: var(--gold); transform: translateY(-5px); }
+        .live-dot { width: 8px; height: 8px; background: red; border-radius: 50%; display: inline-block; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
+        #debugger { background: #0a0a0a; border-top: 1px solid #333; font-family: monospace; font-size: 10px; height: 100px; overflow-y: auto; color: #0f0; }
     </style>
 </head>
-<body class="p-6 md:p-16">
+<body class="flex flex-col min-h-screen">
 
-    <div class="max-w-7xl mx-auto">
-        <!-- Header Section -->
-        <header class="flex justify-between items-end mb-16 border-b border-white/5 pb-10">
+    <div class="flex-grow p-6 md:p-12">
+        <header class="flex justify-between items-center mb-12 border-b border-white/10 pb-6">
             <div>
-                <h1 class="text-6xl font-black italic tracking-tighter">RAHUL <span class="text-yellow-400">MAIDA</span></h1>
-                <p class="text-[11px] font-bold text-zinc-500 uppercase tracking-[0.4em] mt-3 flex items-center">
-                    <span class="live-dot font-bold"></span> Live Proxy Sync Enabled
-                </p>
+                <h1 class="text-4xl font-black tracking-tighter uppercase italic">Rahul <span class="text-yellow-400">Maida</span></h1>
+                <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1"><span class="live-dot"></span> Server-Side Proxy Active</p>
             </div>
-            <div id="action-bar"></div>
+            <div id="nav"></div>
         </header>
 
-        <!-- Main Content Area -->
-        <div id="root" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div class="col-span-full py-40 text-center text-amber-500 animate-pulse font-black text-2xl uppercase tracking-widest">
-                Initializing Rahul Study Engine...
-            </div>
+        <div id="root" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="col-span-full text-center py-20 animate-pulse text-zinc-500 font-bold">WAKING UP RENDER BACKEND...</div>
         </div>
     </div>
 
-    <script>
-        // AAPKA BACKEND URL
-        const API = "https://rahul-backend-7ag5.onrender.com";
+    <!-- Debug Console for the User -->
+    <div id="debugger" class="p-4">
+        <div>[SYSTEM] Waiting for handshake...</div>
+    </div>
 
-        async function fetchBatches() {
+    <script>
+        const API = "https://rahul-backend-7ag5.onrender.com";
+        const debug = (msg) => {
+            const d = document.getElementById('debugger');
+            d.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+            d.scrollTop = d.scrollHeight;
+        };
+
+        async function init() {
+            debug("Connecting to: " + API);
             const root = document.getElementById('root');
+            
             try {
                 const res = await fetch(`${API}/api/batches`);
-                const data = await res.json();
+                debug("Response Status: " + res.status);
                 
-                if(!data || data.length === 0) throw new Error("No Data");
+                if(!res.ok) throw new Error("Backend Returned " + res.status);
+                
+                const data = await res.json();
+                debug("Data Received: " + data.length + " batches found.");
 
                 root.innerHTML = data.map(b => `
-                    <div onclick="openBatch('${b.batchId || b._id}')" class="master-card p-4 cursor-pointer group">
-                        <div class="relative rounded-3xl overflow-hidden mb-6">
-                            <img src="${b.batchImage}" class="w-full h-52 object-cover transition-transform duration-700 group-hover:scale-110">
-                            <div class="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black to-transparent"></div>
-                            <div class="absolute bottom-4 left-4 bg-yellow-400 text-black px-3 py-1 rounded-full text-[9px] font-black uppercase">Study-Live</div>
-                        </div>
-                        <h3 class="font-bold text-base h-12 line-clamp-2 px-2 uppercase leading-tight">${b.batchName}</h3>
-                        <div class="mt-6 flex justify-between items-center p-2 border-t border-white/5 pt-4">
-                            <span class="text-zinc-600 text-[10px] font-black uppercase tracking-widest italic">Expand Content</span>
-                            <i data-lucide="zap" class="w-4 h-4 text-yellow-400"></i>
+                    <div onclick="openBatch('${b.batchId || b._id}')" class="card p-4 group">
+                        <img src="${b.batchImage}" class="w-full h-40 object-cover rounded-xl mb-4 group-hover:opacity-80 transition">
+                        <h3 class="font-bold text-sm h-10 line-clamp-2">${b.batchName}</h3>
+                        <div class="mt-4 flex justify-between items-center opacity-50 text-[10px] uppercase font-bold">
+                            <span>Open Batch</span>
+                            <i data-lucide="arrow-right" class="w-3 h-3"></i>
                         </div>
                     </div>
                 `).join('');
                 lucide.createIcons();
             } catch (err) {
-                root.innerHTML = `<div class="col-span-full py-20 bg-red-500/10 border border-red-500/20 rounded-3xl text-center">
-                    <p class="text-red-500 font-black uppercase mb-4">Server Wake-up Required</p>
-                    <button onclick="location.reload()" class="btn-gold px-10 py-4 rounded-full">TRY RECONNECTING</button>
-                    <p class="text-zinc-600 text-[10px] mt-4 italic">CORS Block? Render is booting up, wait 30 seconds.</p>
+                debug("FATAL ERROR: " + err.message);
+                root.innerHTML = `<div class="col-span-full text-center py-20">
+                    <div class="text-red-500 font-bold mb-4 italic">CRITICAL CONNECTION ERROR</div>
+                    <button onclick="location.reload()" class="bg-yellow-400 text-black px-10 py-3 rounded-full font-black uppercase text-xs">Force Restart Portal</button>
+                    <p class="text-[10px] text-zinc-600 mt-6">Check Debug Console below for exact error point.</p>
                 </div>`;
             }
         }
 
         async function openBatch(bid) {
-            const root = document.getElementById('root');
-            root.innerHTML = `<div class="col-span-full py-40 text-center font-black animate-bounce text-yellow-400">FETCHING LIVE SUBJECTS...</div>`;
+            debug("Fetching Subjects for BID: " + bid);
+            document.getElementById('root').innerHTML = `<div class="col-span-full text-center py-20 font-bold text-yellow-400">LOADING SUBJECTS...</div>`;
             
             try {
                 const res = await fetch(`${API}/api/details/${bid}`);
                 const resData = await res.json();
                 const subjects = resData.data.subjects || [];
+                debug(subjects.length + " subjects loaded.");
 
-                document.getElementById('action-bar').innerHTML = `<button onclick="location.reload()" class="bg-white text-black px-8 py-3 rounded-full font-black text-[10px] uppercase tracking-tighter shadow-xl shadow-white/5">← Back Store</button>`;
+                document.getElementById('nav').innerHTML = `<button onclick="location.reload()" class="border border-white/20 text-white px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest">Back</button>`;
 
-                root.innerHTML = subjects.map(s => `
-                    <div onclick="openContent('${bid}', '${s.subjectId || s._id}')" class="master-card p-10 flex flex-col items-center justify-center gap-6 text-center cursor-pointer">
-                        <div class="w-20 h-20 bg-yellow-400/10 rounded-full flex items-center justify-center text-yellow-500 border border-yellow-400/20">
-                            <i data-lucide="layers" class="w-10 h-10"></i>
-                        </div>
-                        <span class="font-black text-xs uppercase tracking-tighter px-2">${s.subjectName || s.name}</span>
+                document.getElementById('root').innerHTML = subjects.map(s => `
+                    <div onclick="openContent('${bid}', '${s.subjectId || s._id}')" class="card p-8 flex flex-col items-center gap-4 text-center">
+                        <div class="bg-yellow-400/10 p-4 rounded-ful text-yellow-400"><i data-lucide="folder" class="w-8 h-8"></i></div>
+                        <span class="font-bold text-xs uppercase tracking-tighter">${s.subjectName || s.name}</span>
                     </div>
                 `).join('');
                 lucide.createIcons();
-            } catch (err) { console.error(err); }
+            } catch(e) { debug("Error loading subjects: " + e.message); }
         }
 
         async function openContent(bid, sid) {
-            const root = document.getElementById('root');
-            root.innerHTML = `<div class="col-span-full py-40 text-center font-black text-yellow-400 tracking-[0.5em]">SYNCING LIBRARY...</div>`;
-
+            debug("Fetching Content for SID: " + sid);
+            document.getElementById('root').innerHTML = `<div class="col-span-full text-center py-20 font-bold text-yellow-100">SYNCING LECTURES...</div>`;
+            
             try {
                 const res = await fetch(`${API}/api/content/${bid}/${sid}`);
                 const resData = await res.json();
                 const content = resData.data || [];
+                debug(content.length + " lectures found.");
 
-                root.innerHTML = content.map(item => `
-                    <div class="master-card p-6 flex flex-col justify-between h-full group">
-                        <div>
-                            <div class="flex items-center gap-2 mb-4">
-                                <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 shadow-lg shadow-yellow-400"></span>
-                                <span class="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Rahul Maida Cloud</span>
-                            </div>
-                            <h4 class="font-bold text-sm leading-relaxed">${item.title}</h4>
-                        </div>
-                        <a href="${item.url}" target="_blank" class="mt-10 block text-center btn-gold py-5 rounded-[1.5rem] tracking-tighter uppercase text-[11px] shadow-lg shadow-yellow-400/10">PLAY LECTURE</a>
+                document.getElementById('root').innerHTML = content.map(item => `
+                    <div class="card p-5 flex flex-col justify-between">
+                        <h4 class="text-xs font-bold leading-relaxed mb-6">${item.title}</h4>
+                        <a href="${item.url}" target="_blank" class="block text-center bg-white text-black py-3 rounded-xl font-black text-[10px] uppercase tracking-tighter hover:bg-yellow-400 transition">Watch Now</a>
                     </div>
                 `).join('');
                 lucide.createIcons();
-            } catch (err) { console.error(err); }
+            } catch(e) { debug("Error loading lectures: " + e.message); }
         }
 
-        window.onload = fetchBatches;
+        window.onload = init;
     </script>
 </body>
 </html>
