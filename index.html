@@ -4,101 +4,129 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rahul Maida Study - Live</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fixed Tailwind Warning (Using official CSS instead of script) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Dummy Favicon to stop 404 error -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+    
     <style>
-        :root { --gold: #f59e0b; --bg: #0a0a0b; }
-        body { background: var(--bg); color: #fafafa; font-family: 'Outfit', sans-serif; }
-        .glass-card { background: rgba(23, 23, 26, 0.8); border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(10px); }
-        .glass-card:hover { border-color: var(--gold); box-shadow: 0 0 30px rgba(245, 158, 11, 0.1); }
-        .live-pulse { width: 8px; height: 8px; background: #ef4444; border-radius: 50%; box-shadow: 0 0 10px #ef4444; animation: blink 1.5s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        :root { --gold: #f59e0b; --bg: #0d0d0e; }
+        body { background: var(--bg); color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
+        .glass-card { background: #161618; border: 1px solid rgba(255,255,255,0.05); border-radius: 24px; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .glass-card:hover { border-color: var(--gold); transform: translateY(-5px); box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .online { background: #10b981; box-shadow: 0 0 10px #10b981; }
+        .loading-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     </style>
 </head>
-<body class="p-4 md:p-10">
-    <div class="max-w-7xl mx-auto">
-        <header class="flex justify-between items-end mb-12 border-b border-white/5 pb-8">
+<body class="p-6 md:p-12">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 gap-4">
             <div>
-                <h1 class="text-4xl font-black tracking-tighter text-white">RAHUL <span class="text-amber-500">MAIDA</span></h1>
-                <p id="status-text" class="text-[10px] font-bold text-amber-500/50 uppercase tracking-[0.3em] mt-2">Connecting to Live Servers...</p>
+                <h1 class="text-5xl font-black italic tracking-tighter">RAHUL <span class="text-amber-500">MAIDA</span></h1>
+                <div class="mt-2 flex items-center">
+                    <span id="dot" class="status-dot online"></span>
+                    <span id="status-text" class="text-[10px] uppercase font-bold tracking-widest text-zinc-500">System Standby</span>
+                </div>
             </div>
-            <div id="nav-area"></div>
+            <div id="nav-btn"></div>
         </header>
 
-        <div id="root" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="col-span-full py-40 text-center text-zinc-500 font-medium">Bypassing Authentication...</div>
+        <div id="root" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div class="col-span-full py-20 text-center">
+                <div class="loading-pulse text-amber-500 font-bold tracking-tighter text-2xl uppercase">Initializing Live Proxy...</div>
+                <p class="text-zinc-600 text-sm mt-4">Ye process pehli baar mein 30-40 seconds le sakta hai (Render logic).</p>
+            </div>
         </div>
     </div>
 
     <script>
+        // AAPKA RENDER URL YAHAN CHECK KAREIN
         const API = "https://rahul-backend-7ag5.onrender.com";
 
-        async function init() {
+        async function loadBatches() {
+            const root = document.getElementById('root');
+            const status = document.getElementById('status-text');
+            status.innerText = "Attempting Authentication Bypass...";
+
             try {
                 const res = await fetch(`${API}/api/batches`);
-                const data = await res.json();
-                document.getElementById('status-text').innerText = "All Systems Go • Live Sync Active";
+                if(!res.ok) throw new Error("Backend Offline");
                 
-                document.getElementById('root').innerHTML = data.map(b => `
-                    <div onclick="openBatch('${b.batchId || b._id}')" class="glass-card rounded-[2rem] p-4 cursor-pointer group transition-all duration-500">
-                        <div class="relative rounded-[1.5rem] overflow-hidden mb-4">
-                            <img src="${b.batchImage}" class="w-full h-44 object-cover group-hover:scale-110 transition-transform duration-700">
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-                            <div class="absolute bottom-3 left-3 flex items-center gap-2">
-                                <div class="live-pulse"></div><span class="text-[10px] font-bold uppercase tracking-widest">Live</span>
-                            </div>
+                const data = await res.json();
+                status.innerText = "Verified • Live Sync Active";
+                
+                if(data.length === 0) {
+                    root.innerHTML = `<div class="col-span-full text-center py-20 text-zinc-500">No Batches Found. Check your Token.</div>`;
+                    return;
+                }
+
+                root.innerHTML = data.map(b => `
+                    <div onclick="openBatch('${b.batchId || b._id}')" class="glass-card p-5 cursor-pointer group">
+                        <img src="${b.batchImage}" class="w-full h-48 object-cover rounded-2xl mb-4 group-hover:opacity-80 transition-opacity">
+                        <h3 class="font-bold text-lg mb-4 line-clamp-2">${b.batchName}</h3>
+                        <div class="flex justify-between items-center text-amber-500 font-bold text-xs uppercase tracking-widest">
+                            <span>View Subjects</span>
+                            <i data-lucide="arrow-right-circle"></i>
                         </div>
-                        <h3 class="font-bold text-sm h-10 line-clamp-2 px-2 mt-2 group-hover:text-amber-500 transition-colors">${b.batchName}</h3>
-                        <div class="mt-4 flex justify-between items-center p-2">
-                            <span class="text-zinc-500 text-[10px] font-bold underline underline-offset-4">EXPLORE BATCH</span>
-                            <i data-lucide="chevron-right" class="w-4 h-4 text-amber-500"></i>
-                        </div>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            } catch (err) {
+                status.innerText = "Connection Failed • Refreshing...";
+                root.innerHTML = `<div class="col-span-full text-center py-20">
+                    <p class="text-red-500 font-bold">Error: Backend is sleeping.</p>
+                    <button onclick="location.reload()" class="mt-4 bg-white text-black px-8 py-3 rounded-full font-bold">CLICK TO WAKE UP SERVER</button>
+                </div>`;
+            }
+        }
+
+        async function openBatch(bid) {
+            const root = document.getElementById('root');
+            root.innerHTML = `<div class="col-span-full py-40 text-center animate-pulse font-bold text-amber-500">SYNCING LIVE MODULES...</div>`;
+            
+            try {
+                const res = await fetch(`${API}/api/details/${bid}`);
+                const resData = await res.json();
+                const subjects = resData.data.subjects || [];
+
+                document.getElementById('nav-btn').innerHTML = `<button onclick="location.reload()" class="border-2 border-amber-500 text-amber-500 px-8 py-3 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all">Back Home</button>`;
+
+                root.innerHTML = subjects.map(s => `
+                    <div onclick="openContent('${bid}', '${s.subjectId || s._id}')" class="glass-card p-10 flex flex-col items-center justify-center gap-6 text-center cursor-pointer">
+                        <div class="bg-amber-500/10 p-6 rounded-3xl text-amber-500"><i data-lucide="book-open" class="w-10 h-10"></i></div>
+                        <span class="font-black text-sm uppercase tracking-tighter">${s.subjectName || s.name}</span>
                     </div>
                 `).join('');
                 lucide.createIcons();
             } catch(e) { console.error(e); }
         }
 
-        async function openBatch(bid) {
-            const root = document.getElementById('root');
-            root.innerHTML = `<div class="col-span-full py-32 text-center text-amber-500 animate-pulse font-bold tracking-widest">LOADING LIVE DATA...</div>`;
-            
-            const res = await fetch(`${API}/api/details/${bid}`);
-            const resData = await res.json();
-            const subjects = resData.data.subjects || [];
-
-            document.getElementById('nav-area').innerHTML = `<button onclick="location.reload()" class="bg-amber-500 text-black px-6 py-2 rounded-full font-black text-[10px] uppercase tracking-tighter">← Back to Portal</button>`;
-
-            root.innerHTML = subjects.map(s => `
-                <div onclick="openContent('${bid}', '${s.subjectId || s._id}')" class="glass-card p-8 rounded-[2rem] flex flex-col items-center text-center gap-4 cursor-pointer">
-                    <div class="w-16 h-16 bg-amber-500/10 text-amber-500 flex items-center justify-center rounded-3xl"><i data-lucide="folder-kanban" class="w-8 h-8"></i></div>
-                    <span class="font-black text-[11px] uppercase tracking-tighter">${s.subjectName || s.name}</span>
-                </div>
-            `).join('');
-            lucide.createIcons();
-        }
-
         async function openContent(bid, sid) {
             const root = document.getElementById('root');
-            root.innerHTML = `<div class="col-span-full py-32 text-center">Syncing Library...</div>`;
+            root.innerHTML = `<div class="col-span-full py-40 text-center">Opening Library...</div>`;
 
-            const res = await fetch(`${API}/api/content/${bid}/${sid}`);
-            const resData = await res.json();
-            const content = resData.data || [];
+            try {
+                const res = await fetch(`${API}/api/content/${bid}/${sid}`);
+                const resData = await res.json();
+                const content = resData.data || [];
 
-            root.innerHTML = content.map(item => `
-                <div class="glass-card p-6 rounded-[2rem] flex flex-col justify-between h-full group">
-                    <div>
-                        <div class="bg-amber-500/10 text-amber-500 text-[9px] font-bold px-3 py-1 rounded-full mb-4 inline-block tracking-widest uppercase">Content Ready</div>
-                        <h4 class="text-xs font-bold leading-relaxed">${item.title}</h4>
+                root.innerHTML = content.map(item => `
+                    <div class="glass-card p-6 flex flex-col justify-between group">
+                        <div>
+                            <div class="text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Rahul Maida Proxy</div>
+                            <h4 class="font-bold text-sm leading-relaxed">${item.title}</h4>
+                        </div>
+                        <a href="${item.url}" target="_blank" class="mt-10 block text-center bg-amber-500 text-black py-4 rounded-2xl font-black text-xs uppercase tracking-tighter shadow-lg shadow-amber-500/10 active:scale-95 transition-all">Watch Now</a>
                     </div>
-                    <a href="${item.url}" target="_blank" class="mt-8 block text-center bg-white text-black py-4 rounded-3xl font-black text-[10px] uppercase group-hover:bg-amber-500 transition-colors">WATCH NOW</a>
-                </div>
-            `).join('');
-            lucide.createIcons();
+                `).join('');
+                lucide.createIcons();
+            } catch(e) { console.error(e); }
         }
 
-        window.onload = init;
+        window.onload = loadBatches;
     </script>
 </body>
 </html>
